@@ -2,19 +2,136 @@
 
 
 ## Loading and preprocessing the data
-
-
-
+``` {r echo = TRUE}
+activityData = read.csv("activity.csv", colClasses = c("numeric", "Date", "numeric"))
+head(activityData)
+```
 ## What is mean total number of steps taken per day?
+Ignore the missing values in the dataset.
+``` {r echo = TRUE}
+completeActivityData = activityData[complete.cases(activityData),]
+```
+1 - Histogram of the total number of steps taken each day
+  - Calculating the total steps per day
+``` {r echo = TRUE}
+TotalStepsPerDay = aggregate(steps~date,data=completeActivityData,sum)
+head(TotalStepsPerDay)
+```
+Plotting the Histogram showing the Total number of steps taken each day
+```{r echo = TRUE}
+barplot(TotalStepsPerDay$steps,
+     xlab="Day",ylab="Total number of steps taken each day",
+     main="Histogram of Total number of steps taken each day",
+     names.arg=TotalStepsPerDay$date
+     )
+```
+2 - The mean and median total number of steps taken per day
 
-
+- The mean of the total number of steps taken per day is 
+```{r echo = TRUE} 
+mean(TotalStepsPerDay$steps)
+```
+- The median of the total number of steps taken per day is 
+```{r echo = TRUE} 
+median(TotalStepsPerDay$steps)
+```
 
 ## What is the average daily activity pattern?
+Calculating the average steps taken accross all days 
+```{r echo = TRUE}
+avgStepsPerDay = aggregate(steps~interval,data=completeActivityData,mean)
+```
+1 - Ploting the time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
 
+```{r echo = TRUE}
+plot(x = avgStepsPerDay$interval, y = avgStepsPerDay$steps, 
+     main="Average number of steps taken averaged accross all days",
+     type = "l", col = "grey",
+     xlab = "Interval", ylab = "Average steps")
 
+```     
+
+2 - 5-minute interval containing the maximum number of steps
+``` {r echo = TRUE}
+avgStepsPerDay$interval[which.max(avgStepsPerDay$steps)]
+```
 
 ## Imputing missing values
+1 - The total number of missing values in the dataset 
+``` {r echo = TRUE}
+length(which(is.na(activityData$steps)))
+```
 
+2 - The strategy is to fill in all of the missing values in the dataset with mean value of steps
 
+3 - Creating a new dataset that is equal to the original dataset but with the missing data filled in.
+``` {r echo = TRUE, cache=TRUE}
+filledActivityData = as.data.frame(activityData)
+for (i in 1 : length(filledActivityData$interval)){
+        if (is.na(filledActivityData$steps[i])){
+                index = which(avgStepsPerDay$interval == filledActivityData$interval[i])
+                meanVal = avgStepsPerDay$steps[index]
+                filledActivityData$steps[i] = meanVal
+        }
+}
+```
+
+4 - Histogram of the total number of steps taken each day with filled data
+```{r echo = TRUE}
+TotalStepsPerDay_filled = aggregate(steps~date,data=filledActivityData,sum)
+barplot(TotalStepsPerDay_filled$steps,
+     xlab="Day",ylab="Total number of steps taken each day",
+     main="Histogram of Total number of steps taken each day with filled data",
+     names.arg=TotalStepsPerDay_filled$date
+     )
+```
+
+- The mean of the total number of steps taken per day using filled data is 
+```{r echo = TRUE} 
+mean(TotalStepsPerDay_filled$steps)
+```
+- The median of the total number of steps taken per day using filled data is 
+```{r echo = TRUE} 
+median(TotalStepsPerDay_filled$steps)
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+* Create a new factor variable in the dataset with two levels – “weekday” and “weekend” 
+``` {r echo = TRUE, cache=TRUE}
+weekday = weekdays(filledActivityData$date)
+
+for (i in 1 : length(weekday)){
+        if (weekday[i] == "Sunday" | weekday[i] == "Saturday"){
+                weekday[i] = "weekend"
+                } 
+        else  {
+                weekday[i] = "weekday" 
+                }
+}
+filledActivityData$day = weekday
+```
+
+
+* Calculating the average steps taken accross weekdays and weekends 
+```{r echo = TRUE}
+# subsetting data to weekday and weekend
+weekdayData = subset(filledActivityData, filledActivityData$day == "weekday")
+weekendData = subset(filledActivityData, filledActivityData$day == "weekend")
+
+
+avgStepsPerDayWeekend = aggregate(steps~interval,data=weekendData,mean)
+avgStepsPerDayWeekday = aggregate(steps~interval,data=weekdayData,mean)
+
+
+```
+
+* Plot containing a time series plot of the 5-minute interval (x-axis) and the average number of steps taken
+```{r echo = TRUE}
+
+par(mfrow = c(2, 1))
+plot(x = avgStepsPerDayWeekend$interval, y = avgStepsPerDayWeekend$steps, 
+    type = "l", xlab = "Interval", ylab = "Average number of steps", main = "Weekend")
+
+plot(x = avgStepsPerDayWeekday$interval, y = avgStepsPerDayWeekday$steps, 
+    type = "l", xlab = "Interval", ylab = "Average number of steps", main = "Weekday")
+```
